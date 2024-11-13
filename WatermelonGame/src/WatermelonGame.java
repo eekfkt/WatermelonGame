@@ -3,15 +3,15 @@ import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.AffineTransform;
 import org.jbox2d.dynamics.*;
 import org.jbox2d.common.*;
 import org.jbox2d.collision.shapes.*;
+import org.jbox2d.collision.shapes.Shape;
 
 public class WatermelonGame extends JFrame {
     public WatermelonGame() {
         setTitle("Watermelon Game"); // 창 제목 설정
-        setSize(628, 850); // 창 크기 설정
+        setSize(620, 850); // 창 크기 설정
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 동작 설정
         setLocationRelativeTo(null); // 창을 화면 중앙에 배치
         setBackground(new Color(0xF7F4C8)); // 배경색 설정
@@ -39,6 +39,7 @@ class GamePanel extends JPanel {
     private Body leftWall; // 왼쪽 벽 바디
     private Body rightWall; // 오른쪽 벽 바디
     private Body ground; // 바닥 바디
+    private Body topLine; // 탑 라인 바디
     private Timer timer; // 타이머
 
     public GamePanel(World world) {
@@ -64,16 +65,16 @@ class GamePanel extends JPanel {
         leftWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         leftWall = world.createBody(leftWallDef); // 월드에 바디 생성
         PolygonShape leftWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        leftWallShape.setAsBox(15 / 30.0f, 395 / 30.0f); // 박스 모양 설정
+        leftWallShape.setAsBox(30 / 30.0f, 790 / 30.0f); // 박스 모양 설정
         leftWall.createFixture(leftWallShape, 0.0f); // 바디에 모양 추가
 
         // 오른쪽 벽 생성
         BodyDef rightWallDef = new BodyDef(); // 바디 정의 생성
-        rightWallDef.position.set(613 / 30.0f, 395 / 30.0f); // 위치 설정 (미터 단위)
+        rightWallDef.position.set(605 / 30.0f, 395 / 30.0f); // 위치 설정 (미터 단위)
         rightWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         rightWall = world.createBody(rightWallDef); // 월드에 바디 생성
         PolygonShape rightWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        rightWallShape.setAsBox(15 / 30.0f, 395 / 30.0f); // 박스 모양 설정
+        rightWallShape.setAsBox(30 / 30.0f, 790 / 30.0f); // 박스 모양 설정
         rightWall.createFixture(rightWallShape, 0.0f); // 바디에 모양 추가
 
         // 바닥 생성
@@ -84,6 +85,15 @@ class GamePanel extends JPanel {
         PolygonShape groundShape = new PolygonShape(); // 폴리곤 모양 생성
         groundShape.setAsBox(620 / 30.0f, 60 / 30.0f); // 박스 모양 설정
         ground.createFixture(groundShape, 0.0f); // 바디에 모양 추가
+
+        // 탑 라인 생성
+        BodyDef topLineDef = new BodyDef(); // 바디 정의 생성
+        topLineDef.position.set(310 / 30.0f, 150 / 30.0f); // 위치 설정 (미터 단위)
+        topLineDef.type = BodyType.STATIC; // 정적 바디로 설정
+        topLine = world.createBody(topLineDef); // 월드에 바디 생성
+        PolygonShape topLineShape = new PolygonShape(); // 폴리곤 모양 생성
+        topLineShape.setAsBox(620 / 30.0f, 2 / 30.0f); // 박스 모양 설정
+        topLine.createFixture(topLineShape, 0.0f); // 바디에 모양 추가
     }
 
     @Override
@@ -94,20 +104,35 @@ class GamePanel extends JPanel {
         drawBody(g, leftWall, WALL_COLOR); // 왼쪽 벽 그리기
         drawBody(g, rightWall, WALL_COLOR); // 오른쪽 벽 그리기
         drawBody(g, ground, WALL_COLOR); // 바닥 그리기
+        drawBody(g, topLine, WALL_COLOR); // 탑 라인 그리기
     }
 
     private void drawBody(Graphics g, Body body, Color color) {
-        g.setColor(color); // 색상 설정
-        Vec2 position = body.getPosition(); // 바디 위치 가져오기
-        AffineTransform transform = new AffineTransform(); // 변환 생성
-        transform.translate(position.x * 30, position.y * 30); // 좌표 변환
-
+        g.setColor(color); // 그리기 색상 설정
         
-        // 바디의 크기 가져오기
-        PolygonShape shape = (PolygonShape) body.getFixtureList().getShape();
-        Vec2 size = shape.getVertex(0).sub(shape.getVertex(2)).abs().mul(30); // 크기 계산
-
-        ((Graphics2D) g).fill(transform.createTransformedShape(new Rectangle(
-            0, 0, (int) size.x, (int) size.y))); // 변환된 모양 그리기
+        // Body의 모든 Fixture를 순회
+        for (Fixture fixture = body.getFixtureList(); fixture != null; fixture = fixture.getNext()) {
+            Shape shape = fixture.getShape(); // Fixture의 형태 가져오기
+            
+            // 다각형(벽, 바닥 등) 그리기
+            if (shape instanceof PolygonShape) {
+                PolygonShape polygon = (PolygonShape) shape;
+                int vertexCount = polygon.getVertexCount();
+                int[] xPoints = new int[vertexCount];
+                int[] yPoints = new int[vertexCount];
+                
+                // 각 꼭지점의 위치를 화면 좌표로 변환
+                for (int i = 0; i < vertexCount; i++) {
+                    Vec2 vertex = polygon.getVertex(i);
+                    Vec2 worldPoint = body.getWorldPoint(vertex);
+                    // JBox2D의 미터 단위를 픽셀 단위로 변환 (1미터 = 30픽셀)
+                    xPoints[i] = (int) (worldPoint.x * 30.0f);
+                    yPoints[i] = (int) (worldPoint.y * 30.0f);
+                }
+                
+                // 다각형 채우기
+                g.fillPolygon(xPoints, yPoints, vertexCount);
+            }
+        }
     }
 }
