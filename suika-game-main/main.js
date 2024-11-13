@@ -2,7 +2,7 @@ import { Bodies, Body, Engine, Events, Render, Runner, World } from "matter-js";
 import { FRUITS_BASE, FRUITS_HLW } from "./fruits";
 import "./dark.css";
 
-let THEME = "halloween"; // { base, halloween }
+let THEME = "base"; // { base, halloween }
 let FRUITS = FRUITS_BASE;
 
 switch (THEME) {
