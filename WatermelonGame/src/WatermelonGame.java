@@ -1,8 +1,8 @@
 import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+
 import org.jbox2d.dynamics.*;
 import org.jbox2d.common.*;
 import org.jbox2d.collision.shapes.*;
@@ -17,12 +17,15 @@ public class WatermelonGame extends JFrame {
         setBackground(new Color(0xF7F4C8)); // 배경색 설정
         setResizable(false); // 창 크기 조정 불가 설정
 
+       
+        
         // JBox2D World 설정
-        World world = new World(new Vec2(0.0f, -10.0f)); // 중력 설정
+        World world = new World(new Vec2(0.0f, 20.0f)); // 중력 설정
 
         // 패널 추가
         GamePanel panel = new GamePanel(world); // 게임 패널 생성
         add(panel); // 패널을 프레임에 추가
+        
     }
 
     public static void main(String[] args) {
@@ -41,11 +44,15 @@ class GamePanel extends JPanel {
     private Body ground; // 바닥 바디
     private Body topLine; // 탑 라인 바디
     private Timer timer; // 타이머
+    private Body currentBody; // 현재 조작중인 과일 바디
+    private Fruit currentFruit; // 현재 조작중인 과일 정보
 
     public GamePanel(World world) {
         this.world = world; // 월드 설정
         setBackground(new Color(0xF7F4C8)); // 패널 배경색 설정
         createWalls(); // 벽 생성
+
+        addFruit(); // 과일 추가
 
         // 타이머 설정 (60 FPS)
         timer = new Timer(1000 / 60, new ActionListener() { // 60 FPS로 타이머 설정
@@ -56,6 +63,33 @@ class GamePanel extends JPanel {
             }
         });
         timer.start(); // 타이머 시작
+
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (!currentBody.isAwake()) {  // 현재 과일이 멈춰있을 때만
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_LEFT:  // A키
+                            if (currentBody.getPosition().x > 30f/30.0f)
+                                currentBody.setTransform(new Vec2(currentBody.getPosition().x - 1/30.0f, currentBody.getPosition().y), 0);
+                            break;
+                        case KeyEvent.VK_RIGHT: // D키
+                            if (currentBody.getPosition().x < 590f/30.0f)
+                                currentBody.setTransform(new Vec2(currentBody.getPosition().x + 1/30.0f, currentBody.getPosition().y), 0);
+                            break;
+                        case KeyEvent.VK_DOWN:  // S키
+                            currentBody.setAwake(true);  // 과일 떨어뜨리기
+                            
+                            // 1초 후 새 과일 생성
+                            Timer dropTimer = new Timer(1000, e1 -> addFruit());
+                            dropTimer.setRepeats(false);
+                            dropTimer.start();
+                            break;
+                    }
+                }
+            }
+        });
+        setFocusable(true);  // 키 이벤트 받을 수 있도록 설정
     }
 
     private void createWalls() {
@@ -96,6 +130,40 @@ class GamePanel extends JPanel {
         topLine.createFixture(topLineShape, 0.0f); // 바디에 모양 추가
     }
 
+    private void addFruit() {
+        // 랜덤 과일 생성
+        Fruit fruit = FruitType.getRandomFruit();
+        
+        // 과일 바디 정의
+        BodyDef fruitDef = new BodyDef();
+        fruitDef.position.set(300 / 30.0f, 50 / 30.0f); // 초기 위치
+        fruitDef.type = BodyType.DYNAMIC; // 동적 바디
+        
+        // 과일 바디 생성
+        Body fruitBody = world.createBody(fruitDef);
+        
+        // 원형 모양 생성
+        CircleShape circle = new CircleShape();
+        circle.setRadius(fruit.getRadius() / 30.0f); // 미터 단위로 변환
+        
+        // 물리 속성 설정
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = circle;
+        fixtureDef.density = 1.0f;
+        fixtureDef.friction = 0.3f;
+        fixtureDef.restitution = 0.2f; // 반발력
+        
+        // 바디에 fixture 추가
+        fruitBody.createFixture(fixtureDef);
+        
+        // 현재 과일 설정
+        currentBody = fruitBody;
+        currentFruit = fruit;
+        
+        // 초기에는 잠든 상태 (중력 영향 X)
+        currentBody.setAwake(false);
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g); // 부모 클래스의 메서드 호출
@@ -105,6 +173,22 @@ class GamePanel extends JPanel {
         drawBody(g, rightWall, WALL_COLOR); // 오른쪽 벽 그리기
         drawBody(g, ground, WALL_COLOR); // 바닥 그리기
         drawBody(g, topLine, WALL_COLOR); // 탑 라인 그리기
+
+        // 현재 과일 그리기
+        if (currentBody != null && currentFruit != null) {
+            Vec2 position = currentBody.getPosition();
+            int x = (int)(position.x * 30.0f);
+            int y = (int)(position.y * 30.0f);
+            
+            Image fruitImage = currentFruit.getImage();
+            int radius = (int)(currentFruit.getRadius());
+            g.drawImage(fruitImage, 
+                       x - radius, // 이미지 중심점 조정
+                       y - radius, 
+                       radius * 2, 
+                       radius * 2, 
+                       null);
+        }
     }
 
     private void drawBody(Graphics g, Body body, Color color) {
