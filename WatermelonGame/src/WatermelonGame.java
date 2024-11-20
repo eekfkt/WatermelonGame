@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.AffineTransform;
 
 import org.jbox2d.dynamics.*;
 import org.jbox2d.common.*;
@@ -17,14 +18,7 @@ public class WatermelonGame extends JFrame {
         setBackground(new Color(0xF7F4C8)); // 배경색 설정
         setResizable(false); // 창 크기 조정 불가 설정
 
-       
-        
-        // JBox2D World 설정
-        World world = new World(new Vec2(0.0f, 20.0f)); // 중력 설정
-
-        // 패널 추가
-        GamePanel panel = new GamePanel(world); // 게임 패널 생성
-        add(panel); // 패널을 프레임에 추가
+        add(new GamePanel()); // 패널을 프레임에 추가
         
     }
 
@@ -37,7 +31,7 @@ public class WatermelonGame extends JFrame {
 }
 
 class GamePanel extends JPanel {
-    private World world; // JBox2D 월드
+    private World world = new World(new Vec2(0.0f, 20.0f)); // JBox2D 월드
     private static final Color WALL_COLOR = new Color(0xE6B143); // 벽 색상
     private Body leftWall; // 왼쪽 벽 바디
     private Body rightWall; // 오른쪽 벽 바디
@@ -47,8 +41,7 @@ class GamePanel extends JPanel {
     private Body currentBody; // 현재 조작중인 과일 바디
     private Fruit currentFruit; // 현재 조작중인 과일 정보
 
-    public GamePanel(World world) {
-        this.world = world; // 월드 설정
+    public GamePanel() {
         setBackground(new Color(0xF7F4C8)); // 패널 배경색 설정
         createWalls(); // 벽 생성
 
@@ -95,6 +88,7 @@ class GamePanel extends JPanel {
     private void createWalls() {
         // 왼쪽 벽 생성
         BodyDef leftWallDef = new BodyDef(); // 바디 정의 생성
+
         leftWallDef.position.set(15 / 30.0f, 395 / 30.0f); // 위치 설정 (미터 단위)
         leftWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         leftWall = world.createBody(leftWallDef); // 월드에 바디 생성
@@ -166,28 +160,62 @@ class GamePanel extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); // 부모 클래스의 메서드 호출
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        
+        // 안티앨리어싱 설정
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+                             RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // JBox2D 월드의 객체 그리기
-        drawBody(g, leftWall, WALL_COLOR); // 왼쪽 벽 그리기
-        drawBody(g, rightWall, WALL_COLOR); // 오른쪽 벽 그리기
-        drawBody(g, ground, WALL_COLOR); // 바닥 그리기
-        drawBody(g, topLine, WALL_COLOR); // 탑 라인 그리기
+        // 벽과 바닥 그리기
+        drawBody(g2d, leftWall, WALL_COLOR);
+        drawBody(g2d, rightWall, WALL_COLOR);
+        drawBody(g2d, ground, WALL_COLOR);
+        drawBody(g2d, topLine, WALL_COLOR);
 
-        // 현재 과일 그리기
+        // 모든 과일 그리기
+        for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
+            Object userData = body.getUserData();
+            if (userData instanceof FruitType) {
+                FruitType fruitType = (FruitType) userData;
+                Fruit fruit = fruitType.getFruit();
+                
+                // 위치 계산
+                Vec2 position = body.getPosition();
+                int x = (int)(position.x * 30.0f);
+                int y = (int)(position.y * 30.0f);
+                float angle = body.getAngle();
+                
+                // 회전 변환 적용
+                AffineTransform transform = new AffineTransform();
+                transform.translate(x, y);
+                transform.rotate(angle);
+                
+                // 이미지 크기 계산
+                int radius = (int)fruit.getRadius();
+                transform.translate(-radius, -radius);
+                
+                // 이미지 그리기
+                AffineTransform oldTransform = g2d.getTransform();
+                g2d.setTransform(transform);
+                g2d.drawImage(fruit.getImage(), 0, 0, radius * 2, radius * 2, null);
+                g2d.setTransform(oldTransform);
+            }
+        }
+
+        // 현재 조작 중인 과일 그리기
         if (currentBody != null && currentFruit != null) {
             Vec2 position = currentBody.getPosition();
             int x = (int)(position.x * 30.0f);
             int y = (int)(position.y * 30.0f);
+            int radius = (int)currentFruit.getRadius();
             
-            Image fruitImage = currentFruit.getImage();
-            int radius = (int)(currentFruit.getRadius());
-            g.drawImage(fruitImage, 
-                       x - radius, // 이미지 중심점 조정
-                       y - radius, 
-                       radius * 2, 
-                       radius * 2, 
-                       null);
+            g2d.drawImage(currentFruit.getImage(),
+                         x - radius,
+                         y - radius,
+                         radius * 2,
+                         radius * 2,
+                         null);
         }
     }
 
