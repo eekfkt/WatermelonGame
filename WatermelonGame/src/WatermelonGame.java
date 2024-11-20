@@ -3,6 +3,8 @@ import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.util.Random;
+
 import org.jbox2d.dynamics.*;
 import org.jbox2d.common.*;
 import org.jbox2d.collision.shapes.*;
@@ -14,8 +16,8 @@ public class WatermelonGame extends JFrame {
         setSize(620, 850); // 창 크기 설정
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 동작 설정
         setLocationRelativeTo(null); // 창을 화면 중앙에 배치
-        //setResizable(false); // 창 크기 조정 불가 설정
-
+        setResizable(false); // 창 크기 조정 불가 설정
+        
         add(new GamePanel()); // 패널을 프레임에 추가
     }
 
@@ -37,7 +39,9 @@ class GamePanel extends JPanel implements ActionListener {
     private Timer timer; // 타이머
     private Body currentBody; // 현재 조작중인 과일 바디
     private Fruit currentFruit; // 현재 조작중인 과일 정보
-    private Vec2 lastSKeyPosition = new Vec2(300, 50); // 기본 위치 설정
+    private Vec2 lastSKeyPosition = new Vec2(300 / 30f, 50 / 30f); // 기본 위치 설정
+    private Random random = new Random();
+
 
     public GamePanel() {
         world = new World(new Vec2(0.0f, 20.0f)); // JBox2D 월드 생성
@@ -67,14 +71,18 @@ class GamePanel extends JPanel implements ActionListener {
                         case KeyEvent.VK_DOWN:
                             // 과일 위치 저장
                             if (currentBody != null) {
-                                lastSKeyPosition = currentBody.getPosition();
+                                lastSKeyPosition.set(currentBody.getPosition());
                             }
                             // 과일 떨어뜨리기 전에 충돌 필터 업데이트
                             Fixture fixture = currentBody.getFixtureList();
                             Filter filter = fixture.getFilterData();
                             filter.maskBits = 0xFFFF; // 모든 카테고리와 충돌
                             fixture.setFilterData(filter);
-                            currentBody.setAwake(true);  // 과일 떨어뜨리기
+                            currentBody.setAwake(true); // 과일 떨어뜨리기
+
+                             // 약간의 랜덤 토크 추가
+                            float randomTorque = (random.nextFloat() - 0.5f) * 10.0f;
+                            currentBody.applyTorque(randomTorque);
 
                             // 1초 후 새 과일 생성
                             Timer dropTimer = new Timer(500, e1 -> addFruit());
@@ -172,7 +180,7 @@ class GamePanel extends JPanel implements ActionListener {
         leftWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         leftWall = world.createBody(leftWallDef); // 월드에 바디 생성
         PolygonShape leftWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        leftWallShape.setAsBox(30 / 30.0f, 790 / 30.0f); // 박스 모양 설정
+        leftWallShape.setAsBox(15 / 30.0f, 395 / 30.0f); // 박스 모양 설정
         leftWall.createFixture(leftWallShape, 0.0f); // 바디에 모양 추가
 
         // 오른쪽 벽 생성
@@ -181,7 +189,7 @@ class GamePanel extends JPanel implements ActionListener {
         rightWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         rightWall = world.createBody(rightWallDef); // 월드에 바디 생성
         PolygonShape rightWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        rightWallShape.setAsBox(30 / 30.0f, 790 / 30.0f); // 박스 모양 설정
+        rightWallShape.setAsBox(15 / 30.0f, 395 / 30.0f); // 박스 모양 설정
         rightWall.createFixture(rightWallShape, 0.0f); // 바디에 모양 추가
 
         // 바닥 생성
@@ -190,7 +198,7 @@ class GamePanel extends JPanel implements ActionListener {
         groundDef.type = BodyType.STATIC; // 정적 바디로 설정
         ground = world.createBody(groundDef); // 월드에 바디 생성
         PolygonShape groundShape = new PolygonShape(); // 폴리곤 모양 생성
-        groundShape.setAsBox(620 / 30.0f, 60 / 30.0f); // 박스 모양 설정
+        groundShape.setAsBox(310 / 30.0f, 30 / 30.0f); // 박스 모양 설정
         // 바닥의 물리 속성 설정
         FixtureDef groundFixtureDef = new FixtureDef();
         groundFixtureDef.shape = groundShape;
@@ -203,7 +211,7 @@ class GamePanel extends JPanel implements ActionListener {
         // topLineDef.type = BodyType.STATIC; // 정적 바디로 설정
         // topLine = world.createBody(topLineDef); // 월드에 바디 생성
         // PolygonShape topLineShape = new PolygonShape(); // 폴리곤 모양 생성
-        // topLineShape.setAsBox(620 / 30.0f, 2 / 30.0f); // 박스 모양 설정
+        // topLineShape.setAsBox(310 / 30.0f, 1 / 30.0f); // 박스 모양 설정
         // topLine.createFixture(topLineShape, 0.0f); // 바디에 모양 추가
     }
 
@@ -213,7 +221,7 @@ class GamePanel extends JPanel implements ActionListener {
         
         // 과일 바디 정의
         BodyDef fruitDef = new BodyDef();
-        fruitDef.position.set(lastSKeyPosition.x / 30.0f, lastSKeyPosition.y / 30.0f); // 초기 위치        
+        fruitDef.position.set(lastSKeyPosition.x, lastSKeyPosition.y); // 초기 위치        
         fruitDef.type = BodyType.DYNAMIC; // 동적 바디
         
         // 과일 바디 생성
