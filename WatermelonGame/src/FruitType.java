@@ -22,7 +22,7 @@ public enum FruitType {
 
     public static Fruit getRandomFruit() {
         FruitType[] fruits = FruitType.values();
-        int index = (int)(Math.random() * 10); // 처음 5개 과일 중에서만 랜덤
+        int index = (int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
         return fruits[index].getFruit();
     }
 

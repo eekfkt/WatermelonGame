@@ -173,37 +173,37 @@ class GamePanel extends JPanel implements ActionListener {
         });
         
         
-        // world.setContactListener(new ContactListener() {
-        //     @Override
-        //     public void beginContact(Contact contact) {
-        //         Body bodyA = contact.getFixtureA().getBody();
-        //         Body bodyB = contact.getFixtureB().getBody();
+        world.setContactListener(new ContactListener() {
+            @Override
+            public void beginContact(Contact contact) {
+                Body bodyA = contact.getFixtureA().getBody();
+                Body bodyB = contact.getFixtureB().getBody();
                 
-        //         Object userDataA = bodyA.getUserData();
-        //         Object userDataB = bodyB.getUserData();
+                Object userDataA = bodyA.getUserData();
+                Object userDataB = bodyB.getUserData();
                 
-        //         if (userDataA instanceof Fruit && userDataB instanceof Fruit) {
-        //             Fruit fruitA = (Fruit) userDataA;
-        //             Fruit fruitB = (Fruit) userDataB;
+                if (userDataA instanceof Fruit && userDataB instanceof Fruit) {
+                    Fruit fruitA = (Fruit) userDataA;
+                    Fruit fruitB = (Fruit) userDataB;
                     
-        //             if (fruitA.getName().equals(fruitB.getName())) {
-        //                 Vec2 posA = bodyA.getPosition();
-        //                 Vec2 posB = bodyB.getPosition();
-        //                 Vec2 midPoint = new Vec2((posA.x + posB.x) / 2, (posA.y + posB.y) / 2);
+                    if (fruitA.getName().equals(fruitB.getName())) {
+                        Vec2 posA = bodyA.getPosition();
+                        Vec2 posB = bodyB.getPosition();
+                        Vec2 midPoint = new Vec2((posA.x + posB.x) / 2, (posA.y + posB.y) / 2);
                         
-        //                 // 충돌 정보 저장
-        //                 pendingCollisions.add(new CollisionInfo(bodyA, bodyB, fruitA, midPoint));
-        //             }
-        //         }
-        //     }
+                        // 충돌 정보 저장
+                        pendingCollisions.add(new CollisionInfo(bodyA, bodyB, fruitA, midPoint));
+                    }
+                }
+            }
 
-        //     @Override
-        //     public void endContact(Contact contact) {}
-        //     @Override
-        //     public void preSolve(Contact contact, Manifold oldManifold) {}
-        //     @Override
-        //     public void postSolve(Contact contact, ContactImpulse impulse) {}
-        // });
+            @Override
+            public void endContact(Contact contact) {}
+            @Override
+            public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override
+            public void postSolve(Contact contact, ContactImpulse impulse) {}
+        });
 
         addFruit(); // 과일 추가
     }
@@ -333,11 +333,7 @@ class GamePanel extends JPanel implements ActionListener {
         ground = world.createBody(groundDef); // 월드에 바디 생성
         PolygonShape groundShape = new PolygonShape(); // 폴리곤 모양 생성
         groundShape.setAsBox(230f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
-        // 바닥의 물리 속성 설정
-        FixtureDef groundFixtureDef = new FixtureDef();
-        groundFixtureDef.shape = groundShape;
-        groundFixtureDef.friction = 0.05f; // 마찰력 감소
-        ground.createFixture(groundFixtureDef); // 바디에 모양 추가
+        ground.createFixture(groundShape, 0.0f); // 바디에 모양 추가
 
         // 탑 라인 생성
         BodyDef topLineDef = new BodyDef(); // 바디 정의 생성
@@ -412,6 +408,13 @@ class GamePanel extends JPanel implements ActionListener {
     }
     
     private Body createFruitBody(Vec2 position, Fruit fruit) {
+        if (position.x < 16f/30.0f + fruit.getRadius()/30.0f) {
+            position.x = 16f/30.0f + fruit.getRadius()/30.0f;
+        }
+        else if (position.x > 444f / 30.0f - fruit.getRadius() / 30.0f) {
+            position.x = 444f / 30.0f - fruit.getRadius() / 30.0f;
+        }
+
         // 바디 정의
         BodyDef fruitDef = new BodyDef();
         fruitDef.position.set(position.x, position.y);
@@ -425,11 +428,11 @@ class GamePanel extends JPanel implements ActionListener {
         // Fixture 정의
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = circle;
-        fixtureDef.density = 0.3f; // 밀도
-        fixtureDef.friction = 0.8f; // 마찰력
+        fixtureDef.density = 0.1f; // 밀도
+        fixtureDef.friction = 0.4f; // 마찰력
         fixtureDef.restitution = 0.2f; // 반발력
         fruitBody.createFixture(fixtureDef); // 바디에 모양 추가
-        fruitBody.setAngularDamping(0.1f); // 각속도 감소
+        fruitBody.setAngularDamping(0.2f); // 각속도 감소
         fruitBody.setLinearDamping(0.1f); // 선속도 감소
         fruitBody.setUserData(fruit); // 사용자 데이터 설정
     
