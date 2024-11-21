@@ -1,28 +1,28 @@
 // FruitType.java
 public enum FruitType {
-    CHERRY("base/00_cherry", 33 / 2),
-    STRAWBERRY("base/01_strawberry", 48 / 2),
-    GRAPE("base/02_grape", 61 / 2),
-    GYOOL("base/03_gyool", 69 / 2),
-    ORANGE("base/04_orange", 89 / 2),
-    APPLE("base/05_apple", 114 / 2),
-    PEAR("base/06_pear", 129 / 2),
-    PEACH("base/07_peach", 156 / 2),
-    PINEAPPLE("base/08_pineapple", 177 / 2),
-    MELON("base/09_melon", 220 / 2),
-    WATERMELON("base/10_watermelon", 260 / 2);
+    CHERRY("base/00_cherry", 30 / 2, 33, 46),
+    STRAWBERRY("base/01_strawberry", 40 / 2, 43, 48),
+    GRAPE("base/02_grape", 60 / 2, 61, 61),
+    GYOOL("base/03_gyool", 70 / 2, 69, 76),
+    ORANGE("base/04_orange", 90 / 2, 89, 95),
+    APPLE("base/05_apple", 110 / 2, 114, 117),
+    PEAR("base/06_pear", 130 / 2, 129, 137),
+    PEACH("base/07_peach", 160 / 2, 161, 156),
+    PINEAPPLE("base/08_pineapple", 180 / 2, 177, 204),
+    MELON("base/09_melon", 220 / 2, 220, 220),
+    WATERMELON("base/10_watermelon", 260 / 2, 259, 259);
 
     private final Fruit fruit;
 
-    FruitType(String name, float radius) {
-        this.fruit = new Fruit(name, radius, "/resources/" + name + ".png");
+    FruitType(String name, float radius, int picWidth, int picHeight) {
+        this.fruit = new Fruit(name, radius, "/resources/" + name + ".png", picWidth, picHeight);
     }
 
     public Fruit getFruit() { return fruit; }
 
     public static Fruit getRandomFruit() {
         FruitType[] fruits = FruitType.values();
-        int index = 10;//(int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
+        int index = (int)(Math.random() * 10); // 처음 5개 과일 중에서만 랜덤
         return fruits[index].getFruit();
     }
 

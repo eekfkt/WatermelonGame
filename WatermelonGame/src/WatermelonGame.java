@@ -173,37 +173,37 @@ class GamePanel extends JPanel implements ActionListener {
         });
         
         
-        world.setContactListener(new ContactListener() {
-            @Override
-            public void beginContact(Contact contact) {
-                Body bodyA = contact.getFixtureA().getBody();
-                Body bodyB = contact.getFixtureB().getBody();
+        // world.setContactListener(new ContactListener() {
+        //     @Override
+        //     public void beginContact(Contact contact) {
+        //         Body bodyA = contact.getFixtureA().getBody();
+        //         Body bodyB = contact.getFixtureB().getBody();
                 
-                Object userDataA = bodyA.getUserData();
-                Object userDataB = bodyB.getUserData();
+        //         Object userDataA = bodyA.getUserData();
+        //         Object userDataB = bodyB.getUserData();
                 
-                if (userDataA instanceof Fruit && userDataB instanceof Fruit) {
-                    Fruit fruitA = (Fruit) userDataA;
-                    Fruit fruitB = (Fruit) userDataB;
+        //         if (userDataA instanceof Fruit && userDataB instanceof Fruit) {
+        //             Fruit fruitA = (Fruit) userDataA;
+        //             Fruit fruitB = (Fruit) userDataB;
                     
-                    if (fruitA.getName().equals(fruitB.getName())) {
-                        Vec2 posA = bodyA.getPosition();
-                        Vec2 posB = bodyB.getPosition();
-                        Vec2 midPoint = new Vec2((posA.x + posB.x) / 2, (posA.y + posB.y) / 2);
+        //             if (fruitA.getName().equals(fruitB.getName())) {
+        //                 Vec2 posA = bodyA.getPosition();
+        //                 Vec2 posB = bodyB.getPosition();
+        //                 Vec2 midPoint = new Vec2((posA.x + posB.x) / 2, (posA.y + posB.y) / 2);
                         
-                        // 충돌 정보 저장
-                        pendingCollisions.add(new CollisionInfo(bodyA, bodyB, fruitA, midPoint));
-                    }
-                }
-            }
+        //                 // 충돌 정보 저장
+        //                 pendingCollisions.add(new CollisionInfo(bodyA, bodyB, fruitA, midPoint));
+        //             }
+        //         }
+        //     }
 
-            @Override
-            public void endContact(Contact contact) {}
-            @Override
-            public void preSolve(Contact contact, Manifold oldManifold) {}
-            @Override
-            public void postSolve(Contact contact, ContactImpulse impulse) {}
-        });
+        //     @Override
+        //     public void endContact(Contact contact) {}
+        //     @Override
+        //     public void preSolve(Contact contact, Manifold oldManifold) {}
+        //     @Override
+        //     public void postSolve(Contact contact, ContactImpulse impulse) {}
+        // });
 
         addFruit(); // 과일 추가
     }
@@ -285,15 +285,21 @@ class GamePanel extends JPanel implements ActionListener {
                 g2d.rotate(angle); // 2. 회전 적용
                 g2d.translate(-radius, -radius); // 3. 이미지 중심으로 이동
 
-                // 체리인 경우 Y-오프셋 추가
-                if (fruit.getName().equals("base/00_cherry")) {
-                    g2d.translate(0, -14);
-                } else if (fruit.getName().equals("base/_gyool")) {
-                    g2d.translate(0, -10);
-                }
+                int width;
+                int height;
 
+                if (fruit.getPicHeight() > fruit.getPicWidth()) {
+                    width = radius * 2;
+                    height = (int) (radius * 2 * ((float) fruit.getPicHeight() / fruit.getPicWidth()));
+                    g2d.translate(0, -(height - radius * 2));
+                }
+                else {
+                    width = (int) (radius * 2 * ((float) fruit.getPicWidth() / fruit.getPicHeight()));
+                    height = radius * 2;
+                }
+                
                 // 이미지 그리기
-                g2d.drawImage(fruit.getImage(), 0, 0, null);
+                g2d.drawImage(fruit.getImage(), 0, 0, width, height,null);
 
                 // 이전 변환 복원
                 g2d.setTransform(oldTransform);
@@ -419,13 +425,13 @@ class GamePanel extends JPanel implements ActionListener {
         // Fixture 정의
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = circle;
-        fixtureDef.density = 1.0f;
-        fixtureDef.friction = 0.05f;
-        fixtureDef.restitution = 0.2f;
-        fruitBody.createFixture(fixtureDef);
-        fruitBody.setAngularDamping(0.05f);
-        fruitBody.setLinearDamping(0.0f);
-        fruitBody.setUserData(fruit);
+        fixtureDef.density = 0.3f; // 밀도
+        fixtureDef.friction = 0.8f; // 마찰력
+        fixtureDef.restitution = 0.2f; // 반발력
+        fruitBody.createFixture(fixtureDef); // 바디에 모양 추가
+        fruitBody.setAngularDamping(0.1f); // 각속도 감소
+        fruitBody.setLinearDamping(0.1f); // 선속도 감소
+        fruitBody.setUserData(fruit); // 사용자 데이터 설정
     
         return fruitBody;
     }
