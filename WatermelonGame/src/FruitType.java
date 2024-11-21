@@ -12,13 +12,9 @@ public enum FruitType {
     MELON("base/09_melon", 220 / 2),
     WATERMELON("base/10_watermelon", 259 / 2);
 
-    private final String name;
-    private final float radius;
     private final Fruit fruit;
 
     FruitType(String name, float radius) {
-        this.name = name;
-        this.radius = radius;
         this.fruit = new Fruit(name, radius, "/resources/" + name + ".png");
     }
 
@@ -26,7 +22,7 @@ public enum FruitType {
 
     public static Fruit getRandomFruit() {
         FruitType[] fruits = FruitType.values();
-        int index = 6;//(int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
+        int index = (int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
         return fruits[index].getFruit();
     }
 

@@ -18,12 +18,27 @@ public class WatermelonGame extends JFrame {
     
     public WatermelonGame() {
         setTitle("Watermelon Game"); // 창 제목 설정
-        setSize(620, 850); // 창 크기 설정
+        setSize(1080, 800); // 창 크기 설정
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 동작 설정
-        setLocationRelativeTo(null); // 창을 화면 중앙에 배치
-        //setResizable(false); // 창 크기 조정 불가 설정
+
+        // 메인 컨테이너 패널 생성 (여백을 위한)
+        JPanel containerPanel = new JPanel();
+        containerPanel.setLayout(new GridBagLayout()); // GridBagLayout으로 변경
+        containerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        add(new GamePanel()); // 패널을 프레임에 추가
+        // GamePanel 생성 및 크기 고정
+        GamePanel gamePanel = new GamePanel();
+        Dimension fixedSize = new Dimension(460, 700);
+        gamePanel.setPreferredSize(fixedSize);
+        gamePanel.setMinimumSize(fixedSize);
+        gamePanel.setMaximumSize(fixedSize);
+        
+        containerPanel.add(gamePanel); // GridBagLayout은 자동으로 중앙 정렬
+        add(containerPanel);
+        
+        setLocationRelativeTo(null);
+        setResizable(false); // 창 크기 조정 불가 설정
+        
     }
 
     public static void main(String[] args) {
@@ -56,7 +71,6 @@ class GamePanel extends JPanel implements ActionListener {
     private List<CollisionInfo> pendingCollisions = new ArrayList<>();
     
     private World world;
-    private static final Color WALL_COLOR = new Color(0xE6B143); // 벽 색상
     private Body leftWall; // 왼쪽 벽 바디
     private Body rightWall; // 오른쪽 벽 바디
     private Body ground; // 바닥 바디
@@ -73,7 +87,6 @@ class GamePanel extends JPanel implements ActionListener {
 
     public GamePanel() {
         world = new World(new Vec2(0.0f, 100.0f)); // JBox2D 월드 생성
-        setSize(460, 800);
         setBackground(new Color(0xF7F4C8)); // 패널 배경색 설정
         createWalls(); // 벽 생성
         setFocusable(true); // 키 이벤트 받을 수 있도록 설정
@@ -216,7 +229,7 @@ class GamePanel extends JPanel implements ActionListener {
         for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
             if (body == leftWall || body == rightWall || body == ground || body == topLine || body == diagonalWall1 || body == diagonalWall2 || body == topWall) {
                 // 벽과 바닥 그리기
-                g2d.setColor(WALL_COLOR); // 그리기 색상 설정
+                g2d.setColor(new Color(0xf3d681)); // 그리기 색상 설정
 
                 // 다각형 모양 가져오기
                 PolygonShape shape = (PolygonShape) body.getFixtureList().getShape();
@@ -314,36 +327,48 @@ class GamePanel extends JPanel implements ActionListener {
         topLine = world.createBody(topLineDef); // 월드에 바디 생성
         PolygonShape topLineShape = new PolygonShape(); // 폴리곤 모양 생성
         topLineShape.setAsBox(230f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
-        topLine.createFixture(topLineShape, 0.0f); // 바디에 모양 추가
+        FixtureDef topLineFixtureDef = new FixtureDef();
+        topLineFixtureDef.shape = topLineShape;
+        topLineFixtureDef.isSensor = true; // 센서로 설정
+        topLine.createFixture(topLineFixtureDef); // 바디에 모양 추가
 
         // 대각선 벽1 생성
         BodyDef diagonalWallDef1 = new BodyDef();
-        diagonalWallDef1.position.set(30 / 30.0f, 100f / 30.0f); // 위치 설정
+        diagonalWallDef1.position.set(21 / 30.0f, 125f / 30.0f); // 위치 설정
         diagonalWallDef1.type = BodyType.STATIC;
-        diagonalWallDef1.angle = (float) Math.toRadians(310); // 각도 설정
+        diagonalWallDef1.angle = (float) Math.toRadians(305); // 각도 설정
         diagonalWall1 = world.createBody(diagonalWallDef1);
         PolygonShape diagonalShape1 = new PolygonShape();
-        diagonalShape1.setAsBox(50f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
-        diagonalWall1.createFixture(diagonalShape1, 0.0f);
+        diagonalShape1.setAsBox(35f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
+        FixtureDef diagonalFixture1 = new FixtureDef();
+        diagonalFixture1.shape = diagonalShape1;
+        diagonalFixture1.isSensor = true; // 센서로 설정
+        diagonalWall1.createFixture(diagonalFixture1);
 
         // 대각선 벽2 생성
         BodyDef diagonalWallDef2 = new BodyDef();
-        diagonalWallDef2.position.set(430 / 30.0f, 100f / 30.0f); // 위치 설정
+        diagonalWallDef2.position.set(438 / 30.0f, 125f / 30.0f); // 위치 설정
         diagonalWallDef2.type = BodyType.STATIC;
-        diagonalWallDef2.angle = (float) Math.toRadians(50);
+        diagonalWallDef2.angle = (float) Math.toRadians(55);
         diagonalWall2 = world.createBody(diagonalWallDef2);
         PolygonShape diagonalShape2 = new PolygonShape();
-        diagonalShape2.setAsBox(50f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
-        diagonalWall2.createFixture(diagonalShape2, 0.0f);
+        diagonalShape2.setAsBox(35f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
+        FixtureDef diagonalFixture2 = new FixtureDef();
+        diagonalFixture2.shape = diagonalShape2;
+        diagonalFixture2.isSensor = true; // 센서로 설정
+        diagonalWall2.createFixture(diagonalFixture2);
 
         // 탑 벽 생성
         BodyDef topWallDef = new BodyDef(); // 바디 정의 생성
-        topWallDef.position.set(230f / 30.0f, 5 / 30.0f); // 위치 설정 (미터 단위)
+        topWallDef.position.set(230f / 30.0f, 100 / 30.0f); // 위치 설정 (미터 단위)
         topWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         topWall = world.createBody(topWallDef); // 월드에 바디 생성
         PolygonShape topWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        topWallShape.setAsBox(185f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
-        topWall.createFixture(topWallShape, 0.0f); // 바디에 모양 추가
+        topWallShape.setAsBox(195f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
+        FixtureDef topWallFixture = new FixtureDef(); 
+        topWallFixture.shape = topWallShape;
+        topWallFixture.isSensor = true; // 센서로 설정
+        topWall.createFixture(topWallFixture);
 
     }
 
@@ -367,8 +392,8 @@ class GamePanel extends JPanel implements ActionListener {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = circle;
         fixtureDef.density = 1.0f;
-        fixtureDef.friction = 0.05f; // 마찰력 감소
-        fixtureDef.restitution = 0.2f; // 반발력
+        fixtureDef.friction = 0.3f; // 마찰력 감소
+        fixtureDef.restitution = 0.1f; // 반발력
 
         // 충돌 필터 설정 - 초기에는 충돌 비활성화
         fixtureDef.filter.categoryBits = 0x0002;
