@@ -10,7 +10,7 @@ public enum FruitType {
     PEACH("base/07_peach", 156 / 2),
     PINEAPPLE("base/08_pineapple", 177 / 2),
     MELON("base/09_melon", 220 / 2),
-    WATERMELON("base/10_watermelon", 259 / 2);
+    WATERMELON("base/10_watermelon", 260 / 2);
 
     private final Fruit fruit;
 
@@ -22,7 +22,7 @@ public enum FruitType {
 
     public static Fruit getRandomFruit() {
         FruitType[] fruits = FruitType.values();
-        int index = (int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
+        int index = 10;//(int)(Math.random() * 5); // 처음 5개 과일 중에서만 랜덤
         return fruits[index].getFruit();
     }
 
