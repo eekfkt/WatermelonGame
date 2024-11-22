@@ -79,13 +79,13 @@ class GamePanel extends JPanel implements ActionListener {
     private Timer timer; // 타이머
     private Body currentBody; // 현재 조작중인 과일 바디
     private Fruit currentFruit; // 현재 조작중인 과일 정보
-    private Vec2 lastSKeyPosition = new Vec2(230 / 30f, 50 / 30f); // 기본 위치 설정
+    private Vec2 lastSKeyPosition = new Vec2(200 / 30f, 110 / 30f); // 기본 위치 설정
     private Random random = new Random();
     private Timer leftMoveTimer;
     private Timer rightMoveTimer;
 
     public GamePanel() {
-        world = new World(new Vec2(0.0f, 100.0f)); // JBox2D 월드 생성
+        world = new World(new Vec2(0.0f, 70.0f)); // JBox2D 월드 생성
         setBackground(new Color(0xF7F4C8)); // 패널 배경색 설정
         createWalls(); // 벽 생성
         setFocusable(true); // 키 이벤트 받을 수 있도록 설정
@@ -97,7 +97,7 @@ class GamePanel extends JPanel implements ActionListener {
         // 왼쪽/오른쪽 이동 타이머 초기화
         leftMoveTimer = new Timer(5, e -> {
             if (currentBody != null && !currentBody.isAwake()) {
-                if (currentBody.getPosition().x > 16f/30.0f + currentFruit.getRadius()/30.0f) {
+                if (currentBody.getPosition().x > 17f/30.0f + currentFruit.getRadius()/30.0f) {
                     currentBody.setTransform(
                         new Vec2(currentBody.getPosition().x - 1/30.0f, currentBody.getPosition().y), 
                         0
@@ -109,7 +109,7 @@ class GamePanel extends JPanel implements ActionListener {
 
         rightMoveTimer = new Timer(5, e -> {
             if (currentBody != null && !currentBody.isAwake()) {
-                if (currentBody.getPosition().x < 444f/30.0f - currentFruit.getRadius()/30.0f) {
+                if (currentBody.getPosition().x < 443f/30.0f - currentFruit.getRadius()/30.0f) {
                     currentBody.setTransform(
                         new Vec2(currentBody.getPosition().x + 1/30.0f, currentBody.getPosition().y), 
                         0
@@ -151,7 +151,7 @@ class GamePanel extends JPanel implements ActionListener {
                             currentBody.applyTorque(randomTorque);
 
                             // 몇초 후 새 과일 생성
-                            Timer dropTimer = new Timer(200, e1 -> addFruit());
+                            Timer dropTimer = new Timer(300, e1 -> addFruit());
                             dropTimer.setRepeats(false);
                             dropTimer.start();
                             break;
@@ -241,7 +241,7 @@ class GamePanel extends JPanel implements ActionListener {
 
         // 모든 바디 순회하여 그리기
         for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
-            if (body == leftWall || body == rightWall || body == ground || body == topLine || body == diagonalWall1
+            if (body == leftWall || body == rightWall || body == ground || body == diagonalWall1
                     || body == diagonalWall2 || body == topWall) {
                 // 벽과 바닥 그리기
                 g2d.setColor(new Color(0xf3d681)); // 그리기 색상 설정
@@ -264,7 +264,6 @@ class GamePanel extends JPanel implements ActionListener {
                 g2d.fillPolygon(xPoints, yPoints, vertexCount);
             }
         }
-        
         for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
             if (body.getUserData() instanceof Fruit) {
                 Fruit fruit = (Fruit) body.getUserData();
@@ -273,7 +272,7 @@ class GamePanel extends JPanel implements ActionListener {
                 Vec2 position = body.getPosition();
                 int x = (int) (position.x * 30.0f);
                 int y = (int) (position.y * 30.0f);
-                float angle = -body.getAngle(); // 각도 부호 반전
+                float angle = body.getAngle(); // 각도 부호 반전
 
                 int radius = (int) fruit.getRadius();
 
@@ -292,17 +291,39 @@ class GamePanel extends JPanel implements ActionListener {
                     width = radius * 2;
                     height = (int) (radius * 2 * ((float) fruit.getPicHeight() / fruit.getPicWidth()));
                     g2d.translate(0, -(height - radius * 2));
-                }
-                else {
+                } else {
                     width = (int) (radius * 2 * ((float) fruit.getPicWidth() / fruit.getPicHeight()));
                     height = radius * 2;
                 }
-                
+
                 // 이미지 그리기
-                g2d.drawImage(fruit.getImage(), 0, 0, width, height,null);
+                g2d.drawImage(fruit.getImage(), 0, 0, width, height, null);
 
                 // 이전 변환 복원
                 g2d.setTransform(oldTransform);
+            }
+        }
+        for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
+            if (body == topLine) {
+                // 벽과 바닥 그리기
+                g2d.setColor(new Color(0xf3d681)); // 그리기 색상 설정
+
+                // 다각형 모양 가져오기
+                PolygonShape shape = (PolygonShape) body.getFixtureList().getShape();
+                int vertexCount = shape.getVertexCount();
+                int[] xPoints = new int[vertexCount];
+                int[] yPoints = new int[vertexCount];
+
+                // 각 꼭지점의 위치를 화면 좌표로 변환
+                for (int i = 0; i < vertexCount; i++) {
+                    Vec2 vertex = shape.getVertex(i);
+                    Vec2 worldPoint = body.getWorldPoint(vertex);
+                    xPoints[i] = (int) (worldPoint.x * 30.0f);
+                    yPoints[i] = (int) (worldPoint.y * 30.0f);
+                }
+
+                // 다각형 채우기
+                g2d.fillPolygon(xPoints, yPoints, vertexCount);
             }
         }
     }
@@ -429,7 +450,7 @@ class GamePanel extends JPanel implements ActionListener {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = circle;
         fixtureDef.density = 0.1f; // 밀도
-        fixtureDef.friction = 0.4f; // 마찰력
+        fixtureDef.friction = 1f; // 마찰력
         fixtureDef.restitution = 0.2f; // 반발력
         fruitBody.createFixture(fixtureDef); // 바디에 모양 추가
         fruitBody.setAngularDamping(0.2f); // 각속도 감소
