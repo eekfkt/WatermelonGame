@@ -1,4 +1,3 @@
-// FruitType.java
 public enum FruitType {
     CHERRY("base/00_cherry", 30 / 2, 33, 46),
     STRAWBERRY("base/01_strawberry", 40 / 2, 43, 48),
