@@ -30,7 +30,6 @@ class GamePanel extends JPanel implements ActionListener {
     // 처리할 충돌 목록
     private CollisionInfo pendingCollision = null; 
     
-    private double scale = 1.0;
     private World world;
     private Body leftWall; // 왼쪽 벽 바디
     private Body rightWall; // 오른쪽 벽 바디
@@ -49,19 +48,17 @@ class GamePanel extends JPanel implements ActionListener {
     private Image backgroundImage;
     private Image cloudImage;
     private int score = 0;
+    private ScoreUpdateListener scoreListener;
     private boolean isGameOver = false;
-    ScorePanel scorePanel;
     private BorderedLabel gameOverLabel;
     private BorderedLabel finalScoreLabel;
 
 
     public GamePanel() {
         world = new World(new Vec2(0.0f, 60.0f)); // JBox2D 월드 생성
-        setOpaque(false); // 패널을 투명하게 설정
+        //setOpaque(false); // 패널을 투명하게 설정
         createWalls(); // 벽 생성
         setFocusable(true); // 키 이벤트 받을 수 있도록 설정
-
-        scorePanel = new ScorePanel();
 
         // 이미지 로드
         backgroundImage = new ImageIcon(getClass().getResource("/resources/base/back.png")).getImage();
@@ -228,8 +225,7 @@ class GamePanel extends JPanel implements ActionListener {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g; 
-        g2d.scale(scale, scale);// 스케일 변환 적용
+        Graphics2D g2d = (Graphics2D) g;
         
         render(g2d);
     }
@@ -237,16 +233,47 @@ class GamePanel extends JPanel implements ActionListener {
     private void render(Graphics2D g2d) {
         // 안티앨리어싱 설정
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
+        RenderingHints.VALUE_ANTIALIAS_ON);
+            
+        // 패널의 현재 크기 가져오기
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
 
-        Composite originalComposite = g2d.getComposite(); // 원래의 Composite 저장
-        float alpha = 0.8f; // 원하는 투명도로 조절
+        // 기준 크기 설정 (원본 디자인 기준)
+        float baseWidth = 460f;
+        float baseHeight = 685f;
+
+        // 스케일 계산
+        float scaleX = panelWidth / baseWidth;
+        float scaleY = panelHeight / baseHeight;
+        float scale = Math.min(scaleX, scaleY); // 더 작은 비율 사용
+
+        // 변환 행렬 저장
+        AffineTransform originalTransform = g2d.getTransform();
+
+        // 스케일 적용
+        g2d.scale(scale, scale);
+
+        // 중앙 정렬을 위한 오프셋 계산
+        float offsetX = (panelWidth/scale - baseWidth) / 2;
+        float offsetY = (panelHeight/scale - baseHeight) / 2;
+        g2d.translate(offsetX, offsetY);
+
+        // 배경 이미지 그리기
+        Composite originalComposite = g2d.getComposite();
+        float alpha = 0.8f;
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-        g2d.drawImage(backgroundImage, 0, 125, 460, 560, null); // 반투명한 배경
-        // 원래의 Composite로 복원 (나머지 요소들은 온전한 불투명도로 그리기)
+        g2d.drawImage(backgroundImage, 0, 125, (int)baseWidth, (int)(baseHeight-125), null);
         g2d.setComposite(originalComposite);
-        g2d.drawImage(cloudImage, (int)(lastSKeyPosition.x * 30.0f - 20), (int)(lastSKeyPosition.y * 30.0f - 90), 130, 90, null);
+
+        // 구름 이미지 그리기 
+        g2d.drawImage(cloudImage, 
+        (int)(lastSKeyPosition.x * 30.0f - 20), 
+        (int)(lastSKeyPosition.y * 30.0f - 90), 
+        130, 90, null);
+
         drawGuideLine(g2d);
+                                
                              
 
         //모든 바디 순회하여 그리기
@@ -338,25 +365,41 @@ class GamePanel extends JPanel implements ActionListener {
         }
 
         if (isGameOver) {
-             // 반투명 오버레이
-             g2d.setColor(new Color(0, 0, 0, 100));
-             g2d.fillRect(0, 0, getWidth()-60, getHeight());
- 
-             // 폰트 메트릭스로 실제 텍스트 높이 계산
-            FontMetrics gameOverMetrics = gameOverLabel.getFontMetrics(gameOverLabel.getFont());
-            int gameOverHeight = gameOverMetrics.getHeight();
+            // 반투명 오버레이
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.fillRect(0, 125, (int)baseWidth, (int)baseHeight-125);
+
+           // 게임오버 라벨 크기와 위치 설정
+            int gameOverFontSize = Math.min(panelWidth/10, panelHeight/8);
+            gameOverLabel.setFont(gameOverLabel.getFont().deriveFont((float)gameOverFontSize));
+            Dimension prefSize = gameOverLabel.getPreferredSize();
+            gameOverLabel.setSize(
+                (int)(prefSize.width * 0.9),  // 너비 90%
+                (int)(prefSize.height * 0.9)   // 높이 90%
+            );
+            gameOverLabel.setLocation(
+                (panelWidth - gameOverLabel.getWidth()) / 2,
+                panelHeight / 3
+            );
             
-            FontMetrics scoreMetrics = finalScoreLabel.getFontMetrics(finalScoreLabel.getFont());
-            int scoreHeight = scoreMetrics.getHeight();
-            
-            // 여유 공간을 포함한 bounds 설정
-            gameOverLabel.setBounds(-15, getHeight()/2 - gameOverHeight - 20, getWidth()-20, gameOverHeight + 40);
-            finalScoreLabel.setBounds(-15, getHeight()/2 + 10, getWidth()-20, scoreHeight + 20);
-            
+            // 최종 점수 라벨 크기와 위치 설정  
+            int scoreFontSize = Math.min(panelWidth/15, panelHeight/12);
+            finalScoreLabel.setFont(finalScoreLabel.getFont().deriveFont((float)scoreFontSize));
+            prefSize = finalScoreLabel.getPreferredSize();
+            finalScoreLabel.setSize(
+                (int)(prefSize.width * 0.9),  // 너비 90%
+                (int)(prefSize.height * 0.9)   // 높이 90%
+            );
+            finalScoreLabel.setLocation(
+                (panelWidth - finalScoreLabel.getWidth()) / 2,
+                gameOverLabel.getY() + gameOverLabel.getHeight() + 20
+            );
+
             gameOverLabel.setVisible(true);
             finalScoreLabel.setText("최종 점수: " + score);
             finalScoreLabel.setVisible(true);
         }
+        g2d.setTransform(originalTransform);
     }
 
     private void createWalls() {
@@ -401,12 +444,12 @@ class GamePanel extends JPanel implements ActionListener {
 
         // 대각선 벽1 생성
         BodyDef diagonalWallDef1 = new BodyDef();
-        diagonalWallDef1.position.set(21 / 30.0f, 157.5f / 30.0f); // 위치 설정
+        diagonalWallDef1.position.set(24 / 30.0f, 156.5f / 30.0f); // 위치 설정
         diagonalWallDef1.type = BodyType.STATIC;
-        diagonalWallDef1.angle = (float) Math.toRadians(305); // 각도 설정
+        diagonalWallDef1.angle = (float) Math.toRadians(304); // 각도 설정
         diagonalWall1 = world.createBody(diagonalWallDef1);
         PolygonShape diagonalShape1 = new PolygonShape();
-        diagonalShape1.setAsBox(35f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
+        diagonalShape1.setAsBox(32f / 30.0f, 7.5f / 30.0f); // 길이와 두께 설정
         FixtureDef diagonalFixture1 = new FixtureDef();
         diagonalFixture1.shape = diagonalShape1;
         diagonalFixture1.isSensor = true; // 센서로 설정
@@ -431,7 +474,7 @@ class GamePanel extends JPanel implements ActionListener {
         topWallDef.type = BodyType.STATIC; // 정적 바디로 설정
         topWall = world.createBody(topWallDef); // 월드에 바디 생성
         PolygonShape topWallShape = new PolygonShape(); // 폴리곤 모양 생성
-        topWallShape.setAsBox(195f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
+        topWallShape.setAsBox(193.5f / 30.0f, 7.5f / 30.0f); // 박스 모양 설정
         FixtureDef topWallFixture = new FixtureDef(); 
         topWallFixture.shape = topWallShape;
         topWallFixture.isSensor = true; // 센서로 설정
@@ -507,6 +550,15 @@ class GamePanel extends JPanel implements ActionListener {
         }
     }
     
+    // ScoreUpdateListener 인터페이스 추가
+    public interface ScoreUpdateListener {
+        void onScoreUpdate(int score);
+    }
+    
+    // 리스너 설정 메서드
+    public void setScoreUpdateListener(ScoreUpdateListener listener) {
+        this.scoreListener = listener;
+    }
     // 점수 획득 메서드
     private void addScore(Fruit fruit) {
         switch (fruit.getName()) {
@@ -544,13 +596,11 @@ class GamePanel extends JPanel implements ActionListener {
                 score += 66;
                 break;
         }
-        scorePanel.updateScore(score);
+        if (scoreListener != null) {
+            scoreListener.onScoreUpdate(score);
+        }
     }
 
-    public void setScale(double scale) {
-        this.scale = scale;
-        repaint();
-    }
 
     // 게임오버 체크 메소드 추가
     private void checkGameOver() {
@@ -579,9 +629,10 @@ class GamePanel extends JPanel implements ActionListener {
         leftMoveTimer.stop();
         rightMoveTimer.stop();
         this.setFocusable(false);
-    
-    repaint();
+
+        repaint();
     }
+    
     
 }
 
