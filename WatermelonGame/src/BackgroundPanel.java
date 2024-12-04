@@ -13,7 +13,7 @@ class BackgroundPanel extends JPanel {
         
         gamePanel = new GamePanel();
         scorePanel = new ScorePanel();
-
+        scorePanel.setGamePanel(gamePanel);
         // GamePanel의 점수 업데이트를 ScorePanel에 연결
         gamePanel.setScoreUpdateListener(score -> {
             scorePanel.updateScore(score);

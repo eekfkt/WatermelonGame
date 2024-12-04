@@ -3,6 +3,8 @@ import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Random;
 import org.jbox2d.dynamics.*;
 import org.jbox2d.dynamics.contacts.Contact;
@@ -52,11 +54,25 @@ class GamePanel extends JPanel implements ActionListener {
     private boolean isGameOver = false;
     private BorderedLabel gameOverLabel;
     private BorderedLabel finalScoreLabel;
+    private static Font customFont;
+    private Fruit nextFruit;
+
+    static {
+        try {
+            InputStream is = ScorePanel.class.getResourceAsStream("/resources/fonts/CookieRun Regular.ttf");
+            customFont = Font.createFont(Font.TRUETYPE_FONT, is);
+            GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(customFont);
+        } catch (IOException | FontFormatException e) {
+            System.err.println("폰트 로드 실패: " + e.getMessage());
+            customFont = new Font("Dialog", Font.BOLD, 36);
+        }
+    }
 
 
     public GamePanel() {
+        setLayout(null);
         world = new World(new Vec2(0.0f, 60.0f)); // JBox2D 월드 생성
-        //setOpaque(false); // 패널을 투명하게 설정
+        setOpaque(false); // 패널을 투명하게 설정
         createWalls(); // 벽 생성
         setFocusable(true); // 키 이벤트 받을 수 있도록 설정
 
@@ -176,6 +192,8 @@ class GamePanel extends JPanel implements ActionListener {
         });
 
         addFruit(); // 과일 추가
+
+        
     
         // 게임오버 라벨 초기화
         gameOverLabel = new BorderedLabel("게임 오버!", 
@@ -367,34 +385,38 @@ class GamePanel extends JPanel implements ActionListener {
         if (isGameOver) {
             // 반투명 오버레이
             g2d.setColor(new Color(0, 0, 0, 100));
-            g2d.fillRect(0, 125, (int)baseWidth, (int)baseHeight-125);
-
-           // 게임오버 라벨 크기와 위치 설정
-            int gameOverFontSize = Math.min(panelWidth/10, panelHeight/8);
-            gameOverLabel.setFont(gameOverLabel.getFont().deriveFont((float)gameOverFontSize));
-            Dimension prefSize = gameOverLabel.getPreferredSize();
-            gameOverLabel.setSize(
-                (int)(prefSize.width * 0.9),  // 너비 90%
-                (int)(prefSize.height * 0.9)   // 높이 90%
-            );
-            gameOverLabel.setLocation(
-                (panelWidth - gameOverLabel.getWidth()) / 2,
-                panelHeight / 3
-            );
+            g2d.fillRect(0, 172, (int)baseWidth, (int)(baseHeight-172));
+        
+            // 원래 변환으로 복원
+            g2d.setTransform(originalTransform);
+        
+            // 게임오버 라벨 설정
+            gameOverLabel.setFont(customFont.deriveFont((float)(60.0 * scale)));
+            finalScoreLabel.setFont(customFont.deriveFont((float)(30.0 * scale)));
             
-            // 최종 점수 라벨 크기와 위치 설정  
-            int scoreFontSize = Math.min(panelWidth/15, panelHeight/12);
-            finalScoreLabel.setFont(finalScoreLabel.getFont().deriveFont((float)scoreFontSize));
-            prefSize = finalScoreLabel.getPreferredSize();
-            finalScoreLabel.setSize(
-                (int)(prefSize.width * 0.9),  // 너비 90%
-                (int)(prefSize.height * 0.9)   // 높이 90%
+            Dimension gameOverSize = gameOverLabel.getPreferredSize();
+            Dimension scoreSize = finalScoreLabel.getPreferredSize();
+        
+            // 오버레이 영역의 중심점 계산
+            int overlayStartY = (int)(offsetY + 172 * scale);
+            int overlayHeight = (int)((baseHeight-172) * scale);
+            int overlayCenterY = overlayStartY + (overlayHeight / 2);
+        
+            // 라벨 위치 계산 (정확한 중앙 정렬)
+            gameOverLabel.setBounds(
+                (int)(panelWidth/2 - gameOverSize.width/2),
+                overlayCenterY - gameOverSize.height - 10,
+                gameOverSize.width,
+                gameOverSize.height
             );
-            finalScoreLabel.setLocation(
-                (panelWidth - finalScoreLabel.getWidth()) / 2,
-                gameOverLabel.getY() + gameOverLabel.getHeight() + 20
+        
+            finalScoreLabel.setBounds(
+                (int)(panelWidth/2 - scoreSize.width/2),
+                overlayCenterY + 10,
+                scoreSize.width,
+                scoreSize.height
             );
-
+        
             gameOverLabel.setVisible(true);
             finalScoreLabel.setText("최종 점수: " + score);
             finalScoreLabel.setVisible(true);
@@ -483,10 +505,12 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     private void addFruit() {
-        // 랜덤 과일 생성
-        Fruit fruit = FruitType.getRandomFruit();
+        // 저장된 다음 과일이 없으면 새로 생성
+        if (nextFruit == null) {
+            updateNextFruit();
+        }
 
-        Body fruitBody = createFruitBody(lastSKeyPosition, fruit);
+        Body fruitBody = createFruitBody(lastSKeyPosition, nextFruit);
 
         Filter fixtureFilter = fruitBody.getFixtureList().getFilterData();
 
@@ -496,10 +520,16 @@ class GamePanel extends JPanel implements ActionListener {
 
         // 현재 과일 설정
         currentBody = fruitBody;
-        currentFruit = fruit;
+        currentFruit = nextFruit;
 
         // 초기에는 잠든 상태 (중력 영향 X)
         currentBody.setAwake(false);
+        updateNextFruit();
+
+        // ScorePanel 즉시 업데이트
+        if (getParent() != null) {
+            getParent().repaint();
+        }
     }
     
     private Body createFruitBody(Vec2 position, Fruit fruit) {
@@ -615,7 +645,7 @@ class GamePanel extends JPanel implements ActionListener {
             // Fruit 객체를 가진 바디만 체크
             if (body.getUserData() instanceof Fruit) {
                 // 과일의 중심점이 topLine보다 위에 있으면 게임오버
-                if (body.getPosition().y < topLine.getPosition().y-1) {
+                if (body.getPosition().y < topLine.getPosition().y-0.5) {
                     gameOver();
                     break;
                 }
@@ -633,6 +663,14 @@ class GamePanel extends JPanel implements ActionListener {
         repaint();
     }
     
-    
+    public Fruit getNextFruit() {
+        return nextFruit;
+    }
+    private void updateNextFruit() {
+        nextFruit = FruitType.getRandomFruit();
+        if (scoreListener != null) {
+            scoreListener.onScoreUpdate(score); 
+        }
+    }
 }
 

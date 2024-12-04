@@ -54,9 +54,9 @@ class BorderedLabel extends JLabel {
 
         // 외부 테두리
         g2d.setColor(outerBorder);
-        for(int i = -2; i <= 2; i++) {
-            for(int j = -2; j <= 2; j++) {
-                if(Math.abs(i) == 2 || Math.abs(j) == 2) {
+        for (int i = -2; i <= 2; i++) {
+            for (int j = -2; j <= 2; j++) {
+                if (Math.abs(i) == 2 || Math.abs(j) == 2) {
                     g2d.drawString(text, x + i, y + j);
                 }
             }
@@ -64,9 +64,9 @@ class BorderedLabel extends JLabel {
 
         // 내부 테두리
         g2d.setColor(innerBorder);
-        for(int i = -1; i <= 1; i++) {
-            for(int j = -1; j <= 1; j++) {
-                if(Math.abs(i) == 1 || Math.abs(j) == 1) {
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                if (Math.abs(i) == 1 || Math.abs(j) == 1) {
                     g2d.drawString(text, x + i, y + j);
                 }
             }
@@ -75,15 +75,23 @@ class BorderedLabel extends JLabel {
         // 텍스트 (그라데이션 또는 단색)
         if (useGradient) {
             GradientPaint gradient = new GradientPaint(
-                x, y - fm.getAscent(), gradientStart,
-                x, y, gradientEnd
-            );
+                    x, y - fm.getAscent(), gradientStart,
+                    x, y, gradientEnd);
             g2d.setPaint(gradient);
         } else {
             g2d.setColor(textColor);
         }
         g2d.drawString(text, x, y);
-        
+
         g2d.dispose();
+    }
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension size = super.getPreferredSize();
+        // 여백을 포함한 크기 반환
+        return new Dimension(
+            size.width + (5 * 2),
+            size.height + (5 * 2)
+        );
     }
 }

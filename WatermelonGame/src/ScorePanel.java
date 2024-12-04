@@ -5,8 +5,11 @@ import java.io.InputStream;
 import java.awt.geom.AffineTransform;
 
 class ScorePanel extends JPanel {
+    private GamePanel gamePanel;
     private BorderedLabel scoreLabel;
     private BorderedLabel titleLabel;
+    private BorderedLabel nextLabel;
+    private BorderedLabel evolutionLabel;
     private static Font customFont;
     private Image bubbleImage;
     private Image evolutionImage;
@@ -24,7 +27,7 @@ class ScorePanel extends JPanel {
 
     public ScorePanel() {
         setLayout(null); // null 레이아웃 사용
-        //setOpaque(false);
+        setOpaque(false);
 
         // 이미지 로드
         try {
@@ -36,39 +39,21 @@ class ScorePanel extends JPanel {
 
          // 라벨 초기화 시 여백 추가
         titleLabel = new BorderedLabel("점수", new Color(0xFFFEF0), new Color(0x8D6219),
-        new Color(0xD8AA65), null, null) {
-            @Override
-            public Dimension getPreferredSize() {
-                Dimension d = super.getPreferredSize();
-                // 좌우 여백 20픽셀씩 추가
-                return new Dimension(d.width + 40, d.height + 30);
-            }
-        };
+        new Color(0xD8AA65), null, null);
 
-        scoreLabel = new BorderedLabel("0", null, new Color(0x8D6219), new Color(0xD8AA65),
-            new Color(0xFFFEF0), new Color(0xF8C951)) {
-        @Override
-        public Dimension getPreferredSize() {
-            Dimension d = super.getPreferredSize();
-            // 좌우 여백 20픽셀씩 추가
-            return new Dimension(d.width + 40, d.height + 30);
-        }
-        };
+        nextLabel = new BorderedLabel("다음", new Color(0xFFFEF0), new Color(0x8D6219),
+                new Color(0xD8AA65), null, null);
+        
+        evolutionLabel = new BorderedLabel("진화의 고리", new Color(0xFFFEF0), new Color(0x8D6219), 
+                new Color(0xD8AA65), null, null);
 
-        // 폰트 크기 설정
-        titleLabel.setFont(customFont.deriveFont(24f));
-        scoreLabel.setFont(customFont.deriveFont(24f));
+        scoreLabel = new BorderedLabel("0", null, new Color(0x8D6219), new Color(0xD8AA65), new Color(0xFFFEF0), new Color(0xF8C951));
 
-        // 라벨 기본 크기 설정
-        titleLabel.setSize(titleLabel.getPreferredSize());
-        scoreLabel.setSize(scoreLabel.getPreferredSize());
-
-        // 라벨 가시성 설정
-        titleLabel.setVisible(true);
-        scoreLabel.setVisible(true);
 
         add(titleLabel);
         add(scoreLabel);
+        add(nextLabel);
+        add(evolutionLabel);
     }
 
     @Override
@@ -117,14 +102,20 @@ class ScorePanel extends JPanel {
         g2d.drawImage(evolutionImage, imageX, (int)(startY + (bubbleSize + verticalGap) * 2), bubbleSize, bubbleSize, null);
 
         // 라벨 위치 계산 조정
-        double titleY = startY + bubbleSize * -0.17;
-        double scoreY = startY + bubbleSize * 0.33;
+        double titleY = startY + bubbleSize * -0.10;
+        double scoreY = startY + bubbleSize * 0.37;
+        double nextY = startY + bubbleSize + bubbleSize * -0.10 + verticalGap;
+        double evolutionY = startY + bubbleSize * 2 + bubbleSize * -0.10 + verticalGap * 2;
         
         titleLabel.setFont(customFont.deriveFont((float)(40.0 * scale)));
-        scoreLabel.setFont(customFont.deriveFont((float)(40.0 * scale)));
+        scoreLabel.setFont(customFont.deriveFont((float) (40.0 * scale)));
+        nextLabel.setFont(customFont.deriveFont((float) (30.0 * scale)));
+        evolutionLabel.setFont(customFont.deriveFont((float) (20.0 * scale)));
         
         Dimension titleSize = titleLabel.getPreferredSize();
         Dimension scoreSize = scoreLabel.getPreferredSize();
+        Dimension nextSize = nextLabel.getPreferredSize();
+        Dimension evolutionSize = evolutionLabel.getPreferredSize();
         
         titleLabel.setBounds(
             (int)(offsetX + scale * (imageX + bubbleSize/2 - titleSize.width/(2*scale))), 
@@ -140,7 +131,55 @@ class ScorePanel extends JPanel {
             scoreSize.height
         );
 
+        nextLabel.setBounds(
+            (int)(offsetX + scale * (imageX + bubbleSize/2 - nextSize.width/(2*scale))), 
+            (int)(offsetY + scale * nextY),
+            nextSize.width,
+            nextSize.height
+        );
+
+        evolutionLabel.setBounds(
+            (int)(offsetX + scale * (imageX + bubbleSize/2 - evolutionSize.width/(2*scale))), 
+            (int)(offsetY + scale * evolutionY),
+            evolutionSize.width,
+            evolutionSize.height
+        );
+
+        // 다음 과일 그리기
+        if (gamePanel != null && gamePanel.getNextFruit() != null) {
+            Fruit nextFruit = gamePanel.getNextFruit();
+            Image fruitImage = nextFruit.getImage();
+            
+            // 이미지 크기 비율 계산
+            double nextFruitRatio; // imageRatio 대신 더 명확한 이름 사용
+            int width, height;
+        
+            if (nextFruit.getPicHeight() > nextFruit.getPicWidth()) {
+                // 세로가 더 긴 경우
+                nextFruitRatio = (double)nextFruit.getPicWidth() / nextFruit.getPicHeight();
+                height = Math.min(bubbleSize - 20, (int)(nextFruit.getRadius() * 2.5));
+                width = (int)(height * nextFruitRatio);
+            } else {
+                // 가로가 더 긴 경우
+                nextFruitRatio = (double)nextFruit.getPicHeight() / nextFruit.getPicWidth();
+                width = Math.min(bubbleSize - 20, (int)(nextFruit.getRadius() * 2.5));
+                height = (int)(width * nextFruitRatio);
+            }
+        
+            // 과일 이미지를 두 번째 버블의 중앙에 그리기
+            g2d.drawImage(fruitImage,
+                imageX + (bubbleSize - width) / 2,
+                (int)(startY + bubbleSize + verticalGap + (bubbleSize - height) / 2),
+                width,
+                height,
+                null);
+        }
+
         g2d.setTransform(originalTransform);
+    }
+
+    public void setGamePanel(GamePanel panel) {
+        this.gamePanel = panel;
     }
 
     // 점수 업데이트 메서드
