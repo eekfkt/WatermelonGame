@@ -38,11 +38,16 @@ class BackgroundPanel extends JPanel {
         gbc.insets = new Insets(20, 20, 20, 0);
         add(scorePanel, gbc);
 
-        // 빈 패널
+        // MultiPanel 배치
         gbc.gridx = 2;
         gbc.weightx = 0.4;
         gbc.fill = GridBagConstraints.BOTH;
-        add(new JPanel(), gbc);
+        add(new SelectPanel(), gbc);
+
+         // 컴포넌트가 추가된 후 GamePanel에 포커스 설정
+        SwingUtilities.invokeLater(() -> {
+            gamePanel.requestFocusInWindow();
+        });
     }
 
     public void setScale(double scale) {

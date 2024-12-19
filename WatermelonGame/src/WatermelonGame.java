@@ -14,7 +14,6 @@ public class WatermelonGame extends JFrame {
         setResizable(true);
         setMinimumSize(new Dimension(ORIGINAL_WIDTH/2, ORIGINAL_HEIGHT/2));
         
-        // 배경 패널 중앙 정렬
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;

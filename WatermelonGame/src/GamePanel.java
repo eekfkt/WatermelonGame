@@ -157,7 +157,27 @@ class GamePanel extends JPanel implements ActionListener {
             }
         });
         
+        // 포커스 관련 설정 추가
+        setFocusable(true);
+        requestFocusInWindow();
         
+        // 포커스 리스너 추가
+        addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                // 포커스를 잃으면 자동으로 다시 가져오기
+                SwingUtilities.invokeLater(() -> requestFocusInWindow());
+            }
+        });
+
+        // 마우스 리스너 추가
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                requestFocusInWindow();
+            }
+        });
+
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
@@ -198,10 +218,10 @@ class GamePanel extends JPanel implements ActionListener {
         // 게임오버 라벨 초기화
         gameOverLabel = new BorderedLabel("게임 오버!", 
             new Color(0xFFFEF0),  // 텍스트 색상
-            new Color(0x8D6219),  // 외부 테두리
+            new Color(0x913E2E),  // 외부 테두리
             new Color(0xD8AA65),  // 내부 테두리
-            new Color(0xFFB23F),  // 그라디언트 시작
-            new Color(0xFF7A00)   // 그라디언트 끝
+            new Color(0xFFA92E),  // 그라디언트 시작
+            new Color(0xFA792A)   // 그라디언트 끝
         );
         gameOverLabel.setFont(gameOverLabel.getFont().deriveFont(60f));
         gameOverLabel.setVisible(false);
@@ -290,10 +310,6 @@ class GamePanel extends JPanel implements ActionListener {
         (int)(lastSKeyPosition.y * 30.0f - 90), 
         130, 90, null);
 
-        drawGuideLine(g2d);
-                                
-                             
-
         //모든 바디 순회하여 그리기
         for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
             if (body == leftWall || body == rightWall || body == ground || body == diagonalWall1
@@ -319,6 +335,7 @@ class GamePanel extends JPanel implements ActionListener {
                 g2d.fillPolygon(xPoints, yPoints, vertexCount);
             }
         }
+        drawGuideLine(g2d);
         for (Body body = world.getBodyList(); body != null; body = body.getNext()) {
             if (body.getUserData() instanceof Fruit) {
                 Fruit fruit = (Fruit) body.getUserData();
@@ -384,9 +401,8 @@ class GamePanel extends JPanel implements ActionListener {
 
         if (isGameOver) {
             // 반투명 오버레이
-            g2d.setColor(new Color(0, 0, 0, 100));
-            g2d.fillRect(0, 172, (int)baseWidth, (int)(baseHeight-172));
-        
+            g2d.setColor(new Color(0, 0, 0, 50));
+            g2d.fillRoundRect(0, 172, (int)baseWidth, (int)(baseHeight-172), 15, 15);        
             // 원래 변환으로 복원
             g2d.setTransform(originalTransform);
         
@@ -553,8 +569,8 @@ class GamePanel extends JPanel implements ActionListener {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = circle;
         fixtureDef.density = 0.1f; // 밀도
-        fixtureDef.friction = 1.0f; // 마찰력
-        fixtureDef.restitution = 0.2f; // 반발력
+        fixtureDef.friction = 0.5f; // 마찰력
+        fixtureDef.restitution = 0.15f; // 반발력
         fruitBody.createFixture(fixtureDef); // 바디에 모양 추가
         fruitBody.setAngularDamping(0.2f); // 각속도 감소
         fruitBody.setLinearDamping(0.01f); // 선속도 감소
